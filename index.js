@@ -1,4 +1,5 @@
 const express = require('express');
+const helmet = require('helmet')
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const db = require('./database/dbConfig.js');
@@ -6,6 +7,7 @@ const port = 9000
 const server = express();
 
 server.use(express.json());
+server.use(helmet());
 server.use(cors());
 
 server.get('/', (req, res) => {
