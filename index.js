@@ -2,11 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-
 const db = require('./database/dbConfig.js');
+const port = 9000;
+const jwtSecret = 'nobody tosses a dwarf!';
 
 const server = express();
-
 server.use(express.json());
 server.use(cors());
 
@@ -53,6 +53,7 @@ server.post('/login', (req, res) => {
 
 // protect this route, only authenticated users should see it
 server.get('/users', protected, (req, res) => {
+  console.log('\n** decoded token information **\n', req.decodedToken);
   db('users')
     .select('id', 'username', 'password')
     .then(users => {
@@ -61,22 +62,34 @@ server.get('/users', protected, (req, res) => {
     .catch(err => res.send(err));
 });
 
-function protected(req, res, next) {
-  next();
-}
-
 function generateToken(user) {
   const jwtPayload = {
     ...user,
     hello: 'FSW13',
     role: 'admin'
   };
-  const jwtSecret = 'nobody tosses a dwarf!';
   const jwtOptions = {
     expiresIn: '1m',
   }
-
   return jwt.sign(jwtPayload, jwtSecret, jwtOptions)
 }
 
-server.listen(9000, () => console.log('\nrunning on port 9000\n'));
+function protected(req, res, next) {
+  const token = req.headers.authorization;
+  if (token) {
+    jwt.verify(token, jwtSecret, (err, decodedToken) => {
+      if (err) {
+        return res.status(401).json({ message: 'Invalid token' })
+      }
+      else {
+        req.decodedToken = decodedToken;
+        next();
+      }
+    })
+  }
+  else {
+    res.status(401).json({ message: 'No token provided!' })
+  }
+}
+
+server.listen(port, () => console.log(`\nrunning on port ${port}\n`));
