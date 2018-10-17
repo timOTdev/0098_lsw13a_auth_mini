@@ -52,7 +52,7 @@ server.post('/login', (req, res) => {
 });
 
 // protect this route, only authenticated users should see it
-server.get('/users', protected, (req, res) => {
+server.get('/users', protected, checkRole('other'), (req, res) => {
   console.log('\n** decoded token information **\n', req.decodedToken);
   db('users')
     .select('id', 'username', 'password')
@@ -66,7 +66,7 @@ function generateToken(user) {
   const jwtPayload = {
     ...user,
     hello: 'FSW13',
-    role: 'admin'
+    role: ['admin', 'root']
   };
   const jwtOptions = {
     expiresIn: '1m',
@@ -89,6 +89,16 @@ function protected(req, res, next) {
   }
   else {
     res.status(401).json({ message: 'No token provided!' })
+  }
+}
+
+function checkRole(role) {
+  return function(req, res, next) {
+    if (req.decodedToken && req.decodedToken.role.includes(role)) {
+      next();
+    } else {
+      res.status(403).json({ message: 'You are forbidden to pass!' });
+    }
   }
 }
 
