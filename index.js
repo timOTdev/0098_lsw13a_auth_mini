@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const db = require('./database/dbConfig.js');
 
@@ -39,7 +40,8 @@ server.post('/login', (req, res) => {
     .first()
     .then(user => {
       if (user && bcrypt.compareSync(creds.password, user.password)) {
-        res.status(200).json({ welcome: user.username });
+        const token = generateToken(user);
+        res.status(200).json({ welcome: user.username, token });
       } else {
         res.status(401).json({ message: 'you shall not pass!' });
       }
@@ -63,4 +65,18 @@ function protected(req, res, next) {
   next();
 }
 
-server.listen(3300, () => console.log('\nrunning on port 3300\n'));
+function generateToken(user) {
+  const jwtPayload = {
+    ...user,
+    hello: 'FSW13',
+    role: 'admin'
+  };
+  const jwtSecret = 'nobody tosses a dwarf!';
+  const jwtOptions = {
+    expiresIn: '1m',
+  }
+
+  return jwt.sign(jwtPayload, jwtSecret, jwtOptions)
+}
+
+server.listen(9000, () => console.log('\nrunning on port 9000\n'));
